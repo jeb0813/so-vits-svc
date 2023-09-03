@@ -57,8 +57,10 @@ def run(rank, n_gpus, hps):
     dist.init_process_group(backend=  'gloo' if os.name == 'nt' else 'nccl', init_method='env://', world_size=n_gpus, rank=rank)
     torch.manual_seed(hps.train.seed)
     torch.cuda.set_device(rank)
+
     collate_fn = TextAudioCollate()
     all_in_mem = hps.train.all_in_mem   # If you have enough memory, turn on this option to avoid disk IO and speed up training.
+    
     train_dataset = TextAudioSpeakerLoader(hps.data.training_files, hps, all_in_mem=all_in_mem)
     num_workers = 5 if multiprocessing.cpu_count() > 4 else multiprocessing.cpu_count()
     if all_in_mem:
@@ -71,6 +73,7 @@ def run(rank, n_gpus, hps):
                                  batch_size=1, pin_memory=False,
                                  drop_last=False, collate_fn=collate_fn)
 
+    # 生成器
     net_g = SynthesizerTrn(
         hps.data.filter_length // 2 + 1,
         hps.train.segment_size // hps.data.hop_length,
